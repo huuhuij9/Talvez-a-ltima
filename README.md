@@ -18,11 +18,8 @@ local fakeBody = nil
 local PULL_DISTANCE = 2
 local LERP_SPEED = 0.3
 
--- CARREGAR RAYFIELD LIBRARY
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
 -- LIMPEZA DE GUIS ANTIGAS
-if player.PlayerGui:FindFirstChild(" HRZ (SCRIPT VIP ") then 
+if player.PlayerGui:FindFirstChild("HRZ_COMPATIBLE_V5") then 
     player.PlayerGui.HRZ_COMPATIBLE_V5:Destroy() 
 end
 
@@ -34,223 +31,79 @@ plat.Transparency = 1
 plat.Name = "HRZ_SafePlate"
 plat.Parent = workspace
 
--- INTERFACE PRINCIPAL (RAYFIELD)
-local Window = Rayfield:CreateWindow({
-   Name = " HRZ (VIP) ",
-   LoadingTitle = "Carregando Script...",
-   LoadingSubtitle = "By Hrz",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "HRZ_Configs",
-      FileName = "MainConfig"
-   },
-   KeySystem = false
-})
-
-local MainTab = Window:CreateTab("Principal", 4483362458) -- Icone de casa
-
--- SCREEN GUI PARA OS BOTÕES FLUTUANTES
+-- INTERFACE
 local sg = Instance.new("ScreenGui", player.PlayerGui)
-sg.Name = " HRZ (VIP SCRIPT)"
+sg.Name = "HRZ_COMPATIBLE_V5"
 sg.ResetOnSpawn = false
 
--- FUNÇÃO PARA TORNAR BOTÕES ARRASTÁVEIS
-local function MakeDraggable(button)
-    local dragging, dragInput, dragStart, startPos
-    button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = button.Position
-        end
-    end)
-    button.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    button.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
+local SideFrame = Instance.new("Frame", sg)
+SideFrame.Size = UDim2.new(0, 55, 0, 310)
+SideFrame.Position = UDim2.new(0, 10, 0.3, 0)
+SideFrame.BackgroundTransparency = 0.8
+SideFrame.BackgroundColor3 = Color3.new(0,0,0)
+SideFrame.Active = true
+SideFrame.Draggable = true 
 
--- TOGGLE FLUTUANTE GHOST
-local GhostToggle = Instance.new("TextButton", sg)
-GhostToggle.Size = UDim2.new(0, 50, 0, 50)
-GhostToggle.Position = UDim2.new(0.85, 0, 0.8, 0)
-GhostToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-GhostToggle.Text = "GST\nOFF"
-GhostToggle.TextColor3 = Color3.new(1,1,1)
-GhostToggle.Font = Enum.Font.GothamBold
-GhostToggle.TextSize = 12
-GhostToggle.ZIndex = 10
-Instance.new("UICorner", GhostToggle).CornerRadius = UDim.new(0, 12)
-MakeDraggable(GhostToggle)
+Instance.new("UICorner", SideFrame).CornerRadius = UDim.new(0, 10)
 
--- TOGGLE FLUTUANTE PULL
-local PullToggle = Instance.new("TextButton", sg)
-PullToggle.Size = UDim2.new(0, 50, 0, 50)
-PullToggle.Position = UDim2.new(0.85, 0, 0.7, 0) -- Acima do Ghost
-PullToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-PullToggle.Text = "PULL\nOFF"
-PullToggle.TextColor3 = Color3.new(1,1,1)
-PullToggle.Font = Enum.Font.GothamBold
-PullToggle.TextSize = 12
-PullToggle.ZIndex = 10
-Instance.new("UICorner", PullToggle).CornerRadius = UDim.new(0, 12)
-MakeDraggable(PullToggle)
+local layout = Instance.new("UIListLayout", SideFrame)
+layout.Padding = UDim.new(0, 8)
+layout.HorizontalAlignment = "Center"
+layout.VerticalAlignment = "Center"
 
--- VARIÁVEIS PARA SINCRONIZAÇÃO
-local GhostToggleRayfield
-local PullToggleRayfield
-
-local function UpdateGhostVisual()
-    local isEnabled = getgenv().Underground_Enabled
-    local colorOn = Color3.fromRGB(0, 255, 150)
-    local colorOff = Color3.fromRGB(40, 40, 40)
+local function CreateToggle(name, varName, colorOn, specialCallback)
+    local btn = Instance.new("TextButton", SideFrame)
+    btn.Size = UDim2.new(0, 45, 0, 45)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.Text = name
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
     
-    GhostToggle.BackgroundColor3 = isEnabled and colorOn or colorOff
-    GhostToggle.Text = "GST\n" .. (isEnabled and "ON" or "OFF")
-    
-    if GhostToggleRayfield then
-        GhostToggleRayfield:Set(isEnabled)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+
+    local function UpdateVisual()
+        btn.BackgroundColor3 = getgenv()[varName] and colorOn or Color3.fromRGB(40, 40, 40)
+        btn.Text = name .. "\n" .. (getgenv()[varName] and "ON" or "OFF")
     end
+    
+    UpdateVisual()
+
+    btn.MouseButton1Click:Connect(function()
+        getgenv()[varName] = not getgenv()[varName]
+        UpdateVisual()
+        if specialCallback then specialCallback() end
+    end)
 end
 
-local function UpdatePullVisual()
-    local isEnabled = getgenv().Pull_Enabled
-    local colorOn = Color3.fromRGB(255, 100, 100) -- Vermelho para Pull
-    local colorOff = Color3.fromRGB(40, 40, 40)
-    
-    PullToggle.BackgroundColor3 = isEnabled and colorOn or colorOff
-    PullToggle.Text = "PULL\n" .. (isEnabled and "ON" or "OFF")
-    
-    if PullToggleRayfield then
-        PullToggleRayfield:Set(isEnabled)
-    end
-end
-
-local function ToggleGhostLogic()
+local function ToggleGhost()
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         local hrp = char.HumanoidRootPart
         if getgenv().Underground_Enabled then
-            getgenv().WallCheck = false
+            getgenv().WallCheck = false -- Desativa WallCheck para bater debaixo da terra
             char.Archivable = true
-            if not fakeBody or not fakeBody.Parent then
-                fakeBody = char:Clone()
-                fakeBody.Parent = workspace
-                for _, p in pairs(fakeBody:GetChildren()) do
-                    if p:IsA("BasePart") then p.CanCollide = false p.Transparency = 0.5 end
-                end
-            end
+            fakeBody = char:Clone()
+            fakeBody.Parent = workspace
             fakeBody:MoveTo(hrp.Position)
+            for _, p in pairs(fakeBody:GetChildren()) do
+                if p:IsA("BasePart") then p.CanCollide = false p.Transparency = 0.5 end
+            end
             hrp.CFrame = hrp.CFrame * CFrame.new(0, -15, 0)
         else
             getgenv().WallCheck = true
-            if fakeBody then fakeBody:Destroy(); fakeBody = nil end
+            if fakeBody then fakeBody:Destroy() end
             hrp.CFrame = hrp.CFrame * CFrame.new(0, 16, 0)
         end
     end
-    UpdateGhostVisual()
 end
 
--- EVENTOS DOS BOTÕES FLUTUANTES
-GhostToggle.MouseButton1Click:Connect(function()
-    getgenv().Underground_Enabled = not getgenv().Underground_Enabled
-    ToggleGhostLogic()
-end)
+CreateToggle("ESP", "ESP_Enabled", Color3.fromRGB(0, 170, 255))
+CreateToggle("HBX", "HBE_Enabled", Color3.fromRGB(255, 170, 0))
+CreateToggle("WALL", "WallCheck", Color3.fromRGB(170, 0, 255))
+CreateToggle("PULL", "Pull_Enabled", Color3.fromRGB(255, 100, 100)) -- Novo Toggle Pull
+CreateToggle("GST", "Underground_Enabled", Color3.fromRGB(0, 255, 150), ToggleGhost)
 
-PullToggle.MouseButton1Click:Connect(function()
-    getgenv().Pull_Enabled = not getgenv().Pull_Enabled
-    UpdatePullVisual()
-end)
-
--- CRIAÇÃO DOS ELEMENTOS NO RAYFIELD
-MainTab:CreateToggle({
-   Name = "ESP (Highlight)",
-   CurrentValue = false,
-   Flag = "ESP_Enabled",
-   Callback = function(Value)
-      getgenv().ESP_Enabled = Value
-   end,
-})
-
-MainTab:CreateToggle({
-   Name = "Hitbox Expander (HBX)",
-   CurrentValue = false,
-   Flag = "HBE_Enabled",
-   Callback = function(Value)
-      getgenv().HBE_Enabled = Value
-   end,
-})
-
-MainTab:CreateToggle({
-   Name = "Wall Check",
-   CurrentValue = true,
-   Flag = "WallCheck",
-   Callback = function(Value)
-      getgenv().WallCheck = Value
-   end,
-})
-
-PullToggleRayfield = MainTab:CreateToggle({
-   Name = "Delta Pull (PULL)",
-   CurrentValue = false,
-   Flag = "Pull_Enabled",
-   Callback = function(Value)
-      if getgenv().Pull_Enabled ~= Value then
-          getgenv().Pull_Enabled = Value
-          UpdatePullVisual()
-      end
-   end,
-})
-
-GhostToggleRayfield = MainTab:CreateToggle({
-   Name = "Ghost Mode (GST)",
-   CurrentValue = false,
-   Flag = "Underground_Enabled",
-   Callback = function(Value)
-      if getgenv().Underground_Enabled ~= Value then
-          getgenv().Underground_Enabled = Value
-          ToggleGhostLogic()
-      end
-   end,
-})
-
-MainTab:CreateSlider({
-   Name = "Tamanho Hitbox Normal",
-   Range = {1, 50},
-   Increment = 1,
-   Suffix = " Studs",
-   CurrentValue = 15,
-   Flag = "HitboxSize",
-   Callback = function(Value)
-      getgenv().HitboxSize = Value
-   end,
-})
-
-MainTab:CreateSlider({
-   Name = "Tamanho Hitbox Ghost",
-   Range = {1, 100},
-   Increment = 1,
-   Suffix = " Studs",
-   CurrentValue = 30,
-   Flag = "GhostHitboxSize",
-   Callback = function(Value)
-      getgenv().GhostHitboxSize = Value
-   end,
-})
-
--- LÓGICA DE VISIBILIDADE (WALL CHECK)
 local function IsVisible(targetPart)
     if not getgenv().WallCheck then return true end
     local origin = camera.CFrame.Position
@@ -310,7 +163,7 @@ RunService.Stepped:Connect(function()
         end
     end
 
-    -- Lógica de Pull (Executada no loop)
+    -- Lógica de Pull
     if getgenv().Pull_Enabled then
         local myChar = player.Character
         local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -323,7 +176,7 @@ RunService.Stepped:Connect(function()
         end
     end
 
-    -- Lógica de Hitbox Dinâmica e ESP
+    -- Lógica de Hitbox Dinâmica
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local root = p.Character.HumanoidRootPart
@@ -350,10 +203,3 @@ RunService.Stepped:Connect(function()
         end
     end
 end)
-
-Rayfield:Notify({
-   Title = "Script Carregado",
-   Content = "Noclip Removido | Delta Pull Adicionado!",
-   Duration = 5,
-   Image = 4483362458,
-})
