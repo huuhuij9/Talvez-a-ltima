@@ -1,9 +1,9 @@
 --[[
-    HRZ VIP V11 - SUPER-LITE PRECISION (MAX PERFORMANCE)
-    - Foco: Performance Extrema e Zero Lag de Interface.
-    - Interface: Minimalista (Sem UICorner, UIStroke ou Tweens).
-    - Funções: Hitbox Control, Prediction, WallCheck, FPS Unlocker.
-    - Otimização: Código de renderização simplificado ao máximo.
+    HRZ VIP V11 - SUPER-LITE ON-SCREEN EDITION
+    - Foco: Performance Extrema e Segurança Total.
+    - Regra de Ouro: HBE e Magnet só ativam se o inimigo estiver VISÍVEL NA TELA.
+    - Correção: WallCheck Rigoroso + WorldToViewportPoint.
+    - Funções: Hitbox Control, Prediction, FPS Unlocker.
 ]]
 
 -- ===========================
@@ -38,7 +38,7 @@ getgenv().Magnet_Enabled = false
 
 -- Configurações de Precisão (Otimizadas)
 getgenv().PredictionAmount = 0.165
-getgenv().WallCheckMargin = 0.5
+getgenv().WallCheckMargin = 0.8
 
 -- Persistência do FPS
 getgenv().FPS_Value = 60
@@ -56,31 +56,39 @@ local Camera = workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
 
 local Allies = {} 
-local rayParams = RaycastParams.new()
-rayParams.FilterType = Enum.RaycastFilterType.Exclude
 
 -- ===========================
--- WALLCHECK AVANÇADO (SUPER-LITE)
+-- FUNÇÃO DE VISIBILIDADE TOTAL
 -- ===========================
-local function IsVisible(targetPart)
-    if not getgenv().WallCheck then return true end
-    local origin = Camera.CFrame.Position
-    local targetPos = targetPart.Position
-    local direction = (targetPos - origin)
+local function IsFullyVisible(targetPart)
+    -- 1. Verificar se está na tela (OnScreen)
+    local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+    if not onScreen then return false end
     
-    local ignoreList = {LocalPlayer.Character}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p.Character then table.insert(ignoreList, p.Character) end
-    end
-    rayParams.FilterDescendantsInstances = ignoreList
-    
-    local result = workspace:Raycast(origin, direction, rayParams)
-    if result then return false end
-    
-    -- Verificação de bordas (Apenas 1 offset para economizar CPU)
-    local margin = getgenv().WallCheckMargin
-    if workspace:Raycast(origin, (targetPos + Vector3.new(margin, 0, 0) - origin), rayParams) then
-        return false
+    -- 2. Verificar se há paredes (WallCheck)
+    if getgenv().WallCheck then
+        local origin = Camera.CFrame.Position
+        local targetPos = targetPart.Position
+        local direction = (targetPos - origin)
+        
+        local rayParams = RaycastParams.new()
+        rayParams.FilterType = Enum.RaycastFilterType.Exclude
+        local ignoreList = {LocalPlayer.Character}
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character then table.insert(ignoreList, p.Character) end
+        end
+        rayParams.FilterDescendantsInstances = ignoreList
+        
+        local result = workspace:Raycast(origin, direction, rayParams)
+        if result and result.Instance then
+            return false
+        end
+        
+        -- Verificação de bordas (Margem de Segurança)
+        local margin = getgenv().WallCheckMargin
+        if workspace:Raycast(origin, (targetPos + Vector3.new(margin, 0, 0) - origin), rayParams) then
+            return false
+        end
     end
     
     return true
@@ -105,9 +113,12 @@ local function GetMagneticTarget()
                 local root = p.Character:FindFirstChild("HumanoidRootPart")
                 if root then
                     local dist = (root.Position - myPos).Magnitude
-                    if dist < closestDist and IsVisible(root) then
-                        closestDist = dist
-                        target = root
+                    if dist < closestDist then
+                        -- Só seleciona se estiver TOTALMENTE visível (Tela + Parede)
+                        if IsFullyVisible(root) then
+                            closestDist = dist
+                            target = root
+                        end
                     end
                 end
             end
@@ -198,7 +209,9 @@ RunService.Heartbeat:Connect(function()
             local hum = p.Character:FindFirstChild("Humanoid")
             if root and hum and hum.Health > 0 then
                 local isEnemy = not (getgenv().TeamCheck and Allies[p.UserId])
-                if hbe and isEnemy then
+                
+                -- REGRA DE OURO: HBE só ativa se estiver visível na tela e sem paredes
+                if hbe and isEnemy and IsFullyVisible(root) then
                     root.Size = Vector3.new(hSize, hSize, hSize)
                     root.Transparency = 1
                     root.CanCollide = false
@@ -206,6 +219,7 @@ RunService.Heartbeat:Connect(function()
                     root.Size = Vector3.new(2, 2, 2)
                     root.CanCollide = true
                 end
+                
                 local hl = p.Character:FindFirstChild("JUMENTAO_HL")
                 if esp then
                     if not hl then 
@@ -261,7 +275,7 @@ makeDraggable(Main)
 
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 25)
-Title.Text = "HRZ•|VIP|•CHEAT"
+Title.Text = "HRZ SUPER-LITE"
 Title.TextColor3 = Color3.new(0, 1, 1)
 Title.TextSize = 14
 Title.Font = Enum.Font.SourceSansBold
@@ -403,7 +417,7 @@ TBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
 TBtn.BackgroundColor3 = Color3.new(0, 0, 0)
 TBtn.BorderSizePixel = 1
 TBtn.BorderColor3 = Color3.new(0, 1, 1)
-TBtn.Text = "ABRIR"
+TBtn.Text = "MENU"
 TBtn.TextColor3 = Color3.new(0, 1, 1)
 TBtn.Font = Enum.Font.SourceSansBold
 TBtn.TextSize = 11
